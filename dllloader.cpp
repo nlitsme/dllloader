@@ -9,6 +9,7 @@
 
 #include <stdio.h>
 #include <errno.h>
+#include <sys/stat.h>
 
 #include <string>
 #include <vector>
@@ -576,7 +577,6 @@ public:
 
     }
     static void undefined() { printf("unimported\n"); }
-    // todo: figure out how to align the stack to 16 bytes here. ( or why malloc needs this alignment )
     static void *__stdcall LocalAlloc(int flag, int size) { return malloc(size); }
     static void *__stdcall LocalFree(void *p) { free(p); return NULL; }
     static void __stdcall SetLastError(uint32_t e) { }
@@ -634,10 +634,34 @@ private:
     ord2ptrmap _exportsbyordinal;
     ByteVector _data;
 };
+bool fileexists(const std::string& path)
+{
+    struct stat st;
+    if (-1==lstat(path.c_str(), &st)) {
+        if (errno==ENOENT)
+            return false;
+        throw posixerror("lstat", path);
+    }
+
+    return (st.st_mode&S_IFMT)==S_IFREG;
+}
+std::string find_dll(const std::string& name)
+{
+    std::string searchpath= getenv("PATH");
+    for (size_t i=searchpath.find(':'), j=0 ; j!=searchpath.npos ; j=i, i=searchpath.find(':', i+1))
+    {
+        std::string path=searchpath.substr(j==0?0:j+1, (i==searchpath.npos || j==0)? i : i-j-1);
+        printf("searching %s\n", path.c_str());
+        if (fileexists(path+"/"+name))
+            return path+"/"+name;
+    }
+    throw loadererror("not found");
+}
 HMODULE LoadLibrary(const char*dllname)
 {
     try {
-        DllModule *dll= new DllModule(dllname);
+        std::string dllfilename= find_dll(dllname);
+        DllModule *dll= new DllModule(dllfilename);
         return reinterpret_cast<HMODULE>(dll);
     }
     catch(...)

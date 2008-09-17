@@ -3,6 +3,9 @@
 
 #include "wintypes.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 HMODULE LoadLibrary(const char*dllname);
 void* GetProcAddress(HMODULE hModule, const char*procname);
 BOOL FreeLibrary(HMODULE hModule);
@@ -13,5 +16,9 @@ BOOL FreeLibrary(HMODULE hModule);
 #define ERROR_PROC_NOT_FOUND             127L
 void SetLastError(unsigned err);
 unsigned GetLastError();
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
