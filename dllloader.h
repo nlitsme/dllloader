@@ -7,7 +7,7 @@
 extern "C" {
 #endif
 HMODULE LoadLibrary(const char*dllname);
-void* GetProcAddress(HMODULE hModule, const char*procname);
+FARPROC GetProcAddress(HMODULE hModule, const char*procname);
 BOOL FreeLibrary(HMODULE hModule);
 
 #define ERROR_INVALID_HANDLE             6L

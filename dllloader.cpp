@@ -710,7 +710,7 @@ HMODULE LoadLibrary(const char*dllname)
     }
 }
 
-void* GetProcAddress(HMODULE hModule, const char*procname)
+FARPROC GetProcAddress(HMODULE hModule, const char*procname)
 {
     DllModule *dll= reinterpret_cast<DllModule*>(hModule);
     if (dll==NULL) {
@@ -719,8 +719,8 @@ void* GetProcAddress(HMODULE hModule, const char*procname)
     }
     unsigned ord= reinterpret_cast<unsigned>(procname);
     if (ord<0x1000)
-        return dll->getprocbyordinal(ord);
-    return dll->getprocbyname(procname);
+        return (FARPROC)dll->getprocbyordinal(ord);
+    return (FARPROC)dll->getprocbyname(procname);
 }
 
 BOOL FreeLibrary(HMODULE hModule)

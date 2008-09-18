@@ -14,7 +14,7 @@ typedef void* PVOID;
 typedef void VOID;
 typedef const void* LPCVOID;
 typedef uint16_t WORD;
-
+typedef int (*FARPROC)();
 #define INVALID_HANDLE_VALUE ((HANDLE)0xFFFFFFFF)
 
 #endif
