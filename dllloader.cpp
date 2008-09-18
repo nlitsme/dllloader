@@ -17,7 +17,6 @@
 
 #ifdef _MSC_VER
 #define fseeko _fseeki64
-#define lstat _stat
 #define stat _stat
 #endif
 #ifdef __GNUC__
@@ -668,10 +667,10 @@ private:
 bool fileexists(const std::string& path)
 {
     struct stat st;
-    if (-1==lstat(path.c_str(), &st)) {
+    if (-1==stat(path.c_str(), &st)) {
         if (errno==ENOENT)
             return false;
-        throw posixerror("lstat", path);
+        throw posixerror("stat", path);
     }
 
     return (st.st_mode&S_IFMT)==S_IFREG;
