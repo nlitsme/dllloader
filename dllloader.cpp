@@ -17,6 +17,8 @@
 
 #ifdef _MSC_VER
 #define fseeko _fseeki64
+#define lstat _stat
+#define stat _stat
 #endif
 #ifdef __GNUC__
 #define __stdcall __attribute__((stdcall))
@@ -179,39 +181,57 @@ public:
 
 class PEFileInfo {
     struct sectioninfo {
+        sectioninfo() : fileoffset(0), filesize(0), virtualaddress(0), virtualsize(0) { }
         off_t fileoffset;
         size_t filesize;
         size_t virtualaddress;
         size_t virtualsize;
     };
     struct exportsymbol {
+        exportsymbol() : ordinal(0), virtualaddress(0) { }
         std::string name;
         unsigned ordinal;
         unsigned virtualaddress;
     };
     struct importsymbol {
+        importsymbol() : ordinal(0), virtualaddress(0) { }
         std::string dllname;
         std::string name;
         unsigned ordinal;
         unsigned virtualaddress;
     };
     struct relocinfo {
+        relocinfo() : virtualaddress(0), type(0) { }
         size_t virtualaddress;
         int type;
     };
     uint32_t _vbase;
 public:
     PEFileInfo(posixfile& f)
-        : _f(f)
+        : _f(f), _vbase(0)
     {
         f.seek(0);
         mzheader mz;
         f.readexact(&mz, sizeof(mz));
-
+        if (mz.magic[0]!='M' || mz.magic[1]!='Z')
+            throw loadererror("invalid MZ header");
+        if (mz.lfanew==0)
+            throw "dos exe not supported";
         // read pe header
         f.seek(mz.lfanew);
         peheader pe;
         f.readexact(&pe, sizeof(pe));
+
+        if (pe.magic[0]!='N' && pe.magic[1]!='E')
+            throw loadererror("NE exe not supported");
+        if (pe.magic[0]!='P' || pe.magic[1]!='E' || pe.magic[2]!=0 || pe.magic[3]!=0)
+            throw loadererror("invalid PE header");
+        if (pe.cpu!=0x14c)
+            throw loadererror("unsupported cpu");
+        if (pe.coffmagic==0x20b)
+            throw loadererror("PE32+ optheader not supported");
+        if (pe.coffmagic!=0x10b)
+            throw loadererror("invalid PE32 optheader");
         std::vector<pe_info> info(pe.hdrextra>0x10 ? 0x10 : pe.hdrextra);
 
         _vbase= pe.vbase;
@@ -373,19 +393,25 @@ private:
         // read export address table
         // entries: if in EXP area : forwarder string
         //          else : exported address
-        _f.seek(rva2fileofs(exphdr.rva_eat));
         std::vector<uint32_t> eatlist(exphdr.eatcnt);
-        _f.readexact(&eatlist[0], sizeof(uint32_t)*eatlist.size());
+        if (exphdr.eatcnt) {
+            _f.seek(rva2fileofs(exphdr.rva_eat));
+            _f.readexact(&eatlist[0], sizeof(uint32_t)*eatlist.size());
+        }
 
         // read export name ptr table
-        _f.seek(rva2fileofs(exphdr.rva_name));
         std::vector<uint32_t> entlist(exphdr.namecnt);
-        _f.readexact(&entlist[0], sizeof(uint32_t)*entlist.size());
+        if (exphdr.namecnt) {
+            _f.seek(rva2fileofs(exphdr.rva_name));
+            _f.readexact(&entlist[0], sizeof(uint32_t)*entlist.size());
+        }
 
         // read export ordinal table
-        _f.seek(rva2fileofs(exphdr.rva_ordinal));
         std::vector<uint16_t> eotlist(exphdr.namecnt);
-        _f.readexact(&eotlist[0], sizeof(uint16_t)*eotlist.size());
+        if (exphdr.namecnt) {
+            _f.seek(rva2fileofs(exphdr.rva_ordinal));
+            _f.readexact(&eotlist[0], sizeof(uint16_t)*eotlist.size());
+        }
         //printf("read eot from %08lx: %d entries\n", exphdr.rva_ordinal, eotlist.size());
 
         //printf("dllname=%s\n", readstring(exphdr.rva_dllname).c_str());
@@ -432,9 +458,11 @@ struct import_header {
             if (isnull(imphdr))
                 break;
             std::vector<uint32_t> ilt;
-            read_until_zero(imphdr.rva_lookup, ilt);
+            // packed executables often have rva_lookup==0
+            read_until_zero(imphdr.rva_lookup ? imphdr.rva_lookup : imphdr.rva_address, ilt);
 
-            std::string impdllname= readstring(imphdr.rva_dllname);
+            std::string impdllname;
+            impdllname= readstring(imphdr.rva_dllname);
 
             for (unsigned i=0 ; i<ilt.size() ; i++)
             {
@@ -467,7 +495,8 @@ struct import_header {
             _f.readexact(&hdr, sizeof(hdr));
 
             std::vector<uint16_t> relocs((hdr.size-sizeof(hdr))/sizeof(uint16_t));
-            _f.readexact(&relocs[0], hdr.size-sizeof(hdr));
+            if (relocs.size())
+                _f.readexact(&relocs[0], hdr.size-sizeof(hdr));
             
             for (unsigned i=0 ; i<relocs.size() ; i++)
             {
@@ -509,8 +538,10 @@ public:
             printf("loading %d: file:%08x:%08lx  rva:%08lx, ofs:%08lx\n",
                     i, uint32_t(_pe.sectionitem(i).fileoffset), _pe.sectionitem(i).filesize,
                     _pe.sectionitem(i).virtualaddress, _pe.sectionitem(i).virtualaddress-_pe.minvirtaddr());
-            _f.seek(_pe.sectionitem(i).fileoffset);
-            _f.readexact(&_data[_pe.sectionitem(i).virtualaddress-_pe.minvirtaddr()], _pe.sectionitem(i).filesize);
+            if (_pe.sectionitem(i).filesize) {
+                _f.seek(_pe.sectionitem(i).fileoffset);
+                _f.readexact(&_data[_pe.sectionitem(i).virtualaddress-_pe.minvirtaddr()], _pe.sectionitem(i).filesize);
+            }
         }
 
         // process exports 
@@ -647,8 +678,12 @@ bool fileexists(const std::string& path)
 }
 std::string find_dll(const std::string& name)
 {
+    if (fileexists(name))
+        return name;
     std::string searchpath= getenv("PATH");
-    for (size_t i=searchpath.find(':'), j=0 ; j!=searchpath.npos ; j=i, i=searchpath.find(':', i+1))
+    char sepchar= (searchpath.find(';')!=searchpath.npos) ? ';' : ':';
+
+    for (size_t i=searchpath.find(sepchar), j=0 ; j!=searchpath.npos ; j=i, i=searchpath.find(sepchar, i+1))
     {
         std::string path=searchpath.substr(j==0?0:j+1, (i==searchpath.npos || j==0)? i : i-j-1);
         printf("searching %s\n", path.c_str());
@@ -661,7 +696,11 @@ HMODULE LoadLibrary(const char*dllname)
 {
     try {
         std::string dllfilename= find_dll(dllname);
+        printf("loading %s\n", dllfilename.c_str());
         DllModule *dll= new DllModule(dllfilename);
+
+        // todo: call DllEntryPoint
+
         return reinterpret_cast<HMODULE>(dll);
     }
     catch(...)
