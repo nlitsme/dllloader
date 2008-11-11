@@ -14,18 +14,18 @@ endif
 
 all: tstcompr tstload
 
-tstcompr:
+tstcompr: dllloader.cpp tstcompr.cpp
 ifeq ($(VSTUDNET),)
-	g++ $(CFLAGS) -Wall -g dllloader.cpp tstcompr.cpp
+	g++ $(CFLAGS) -Wall -g dllloader.cpp tstcompr.cpp -o $@
 else
 	cl /EHsc $(msccdefs) /Zi tstcompr.cpp dllloader.cpp /I "$(VSTUDNET)\vc\include" /I ../include/msvc  /link /libpath:"$(VSTUDNET)\vc\lib"
 	cl /D_USE_WINDOWS /EHsc $(msccdefs) /Zi tstcompr.cpp dllloader.cpp /I "$(VSTUDNET)\vc\include" /I "$(VSTUDNET)\vc\platformsdk\include" /I ../include/msvc /Fe"tstloader2.exe" /link /libpath:"$(VSTUDNET)\vc\lib" /libpath:"$(VSTUDNET)\vc\platformsdk\lib"
 endif
 
 
-tstload:
+tstload: dllloader.cpp tstload.cpp
 ifeq ($(VSTUDNET),)
-	g++ $(CFLAGS) /usr/include/32bit -Wall -g dllloader.cpp tstload.cpp
+	g++ $(CFLAGS) -Wall -g dllloader.cpp tstload.cpp -o $@
 else
 	cl /EHsc $(msccdefs) /Zi tstload.cpp dllloader.cpp /I "$(VSTUDNET)\vc\include" /I ../include/msvc  /link /libpath:"$(VSTUDNET)\vc\lib"
 	cl /D_USE_WINDOWS /EHsc $(msccdefs) /Zi tstload.cpp dllloader.cpp /I "$(VSTUDNET)\vc\include" /I "$(VSTUDNET)\vc\platformsdk\include" /I ../include/msvc /Fe"tstloader2.exe" /link /libpath:"$(VSTUDNET)\vc\lib" /libpath:"$(VSTUDNET)\vc\platformsdk\lib"
