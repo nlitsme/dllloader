@@ -758,7 +758,9 @@ HMODULE MyLoadLibrary(const char*dllname)
         printf("dll:loading %s\n", dllfilename.c_str());
         DllModule *dll= new DllModule(dllfilename, true);
 
-        // todo: call DllEntryPoint
+        DLLENTRYPOINT ep= dll->getentrypoint();
+        printf("loadlib: entrypoint=%08lx\n", ep);
+        ep(reinterpret_cast<HMODULE>(dll), 0, 0);
 
         return reinterpret_cast<HMODULE>(dll);
     }
