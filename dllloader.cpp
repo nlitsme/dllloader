@@ -37,6 +37,8 @@ typedef uint32_t off_t;
 #ifdef __GNUC__
 #define __stdcall __attribute__((stdcall))
 #endif
+
+#define logmsg while(0)
 class posixerror {
 public:
     posixerror(const std::string& fn, const std::string& name)
@@ -563,11 +565,11 @@ public:
     void load_sections()
     {
         _data.resize(_pe.maxvirtaddr()-_pe.minvirtaddr());
-        printf("dll:va range: %08lx - %08lx\n", _pe.minvirtaddr(), _pe.maxvirtaddr());
+        logmsg("dll:va range: %08lx - %08lx\n", _pe.minvirtaddr(), _pe.maxvirtaddr());
         // load sections
         for (unsigned i=0 ; i<_pe.sectioncount() ; i++)
         {
-            printf("dll:loading %d: file:%08x:%08lx  va:%08lx, ofs:%08lx\n",
+            logmsg("dll:loading %d: file:%08x:%08lx  va:%08lx, ofs:%08lx\n",
                     i, uint32_t(_pe.sectionitem(i).fileoffset), _pe.sectionitem(i).filesize,
                     _pe.sectionitem(i).virtualaddress, _pe.sectionitem(i).virtualaddress-_base_va);
             if (_pe.sectionitem(i).filesize) {
@@ -583,16 +585,16 @@ public:
                 _exportsbyordinal[_pe.exportitem(i).ordinal]= &_data[_pe.exportitem(i).virtualaddress-_base_va];
             else
                 _exportsbyname[_pe.exportitem(i).name]= &_data[_pe.exportitem(i).virtualaddress-_base_va];
-            printf("dll:exp %d %08x ord %4d %s\n", i, _pe.exportitem(i).virtualaddress, _pe.exportitem(i).ordinal, _pe.exportitem(i).name.c_str());
+            logmsg("dll:exp %d %08x ord %4d %s\n", i, _pe.exportitem(i).virtualaddress, _pe.exportitem(i).ordinal, _pe.exportitem(i).name.c_str());
         }
 
         // process imports
         for (unsigned i=0 ; i<_pe.importcount() ; i++)
         {
-            printf("dll:import %d: %08x: ord %4d %s %s\n", i, _pe.importitem(i).virtualaddress, _pe.importitem(i).ordinal, _pe.importitem(i).dllname.c_str(), _pe.importitem(i).name.c_str());
+            logmsg("dll:import %d: %08x: ord %4d %s %s\n", i, _pe.importitem(i).virtualaddress, _pe.importitem(i).ordinal, _pe.importitem(i).dllname.c_str(), _pe.importitem(i).name.c_str());
         }
         // relocate
-        printf("dll:%d relocs\n", _pe.reloccount());
+        logmsg("dll:%d relocs\n", _pe.reloccount());
         for (unsigned i=0 ; i<_pe.reloccount() ; i++)
         {
            // printf("reloc %d: %08lx %d\n", i, _pe.relocitem(i).virtualaddress, _pe.relocitem(i).type);
@@ -617,7 +619,7 @@ public:
     {
         uint32_t delta= target-_baseaddr;
 
-        printf("dll:%08x: <", delta);
+        logmsg("dll:%08x: <", delta);
         // relocate
         for (unsigned i=0 ; i<_pe.reloccount() ; i++)
         {
@@ -625,10 +627,10 @@ public:
             uint8_t *p= &_data[_pe.relocitem(i).virtualaddress-_base_va];
             switch(_pe.relocitem(i).type)
             {
-                case IMAGE_REL_BASED_ABSOLUTE:   printf("A"); break;
-                case IMAGE_REL_BASED_HIGH:       *(uint16_t*)p += delta>>16;    printf("H"); break;
-                case IMAGE_REL_BASED_LOW:        *(uint16_t*)p += delta&0xFFFF; printf("L"); break;
-                case IMAGE_REL_BASED_HIGHLOW:    *(uint32_t*)p += delta;        printf("-"); break;
+                case IMAGE_REL_BASED_ABSOLUTE:   logmsg("A"); break;
+                case IMAGE_REL_BASED_HIGH:       *(uint16_t*)p += delta>>16;    logmsg("H"); break;
+                case IMAGE_REL_BASED_LOW:        *(uint16_t*)p += delta&0xFFFF; logmsg("L"); break;
+                case IMAGE_REL_BASED_HIGHLOW:    *(uint32_t*)p += delta;        logmsg("-"); break;
                 case IMAGE_REL_BASED_HIGHADJ:      throw unimplemented(); // ?? ... have to re-read description
                 default:
                    printf("ERROR: unhandled fixup type %d\n", _pe.relocitem(i).type);
@@ -636,7 +638,7 @@ public:
             }
         }
         _baseaddr= target;
-        printf(">\n");
+        logmsg(">\n");
 
     }
 #ifndef _WIN32_WCE
@@ -675,7 +677,7 @@ public:
 #else
             // ... replace some imports with kernel variants
 #endif
-            printf("dll:import %d: %08x:=%08x   ord %4d %s %s\n", i, _pe.importitem(i).virtualaddress, *p, _pe.importitem(i).ordinal, _pe.importitem(i).dllname.c_str(), _pe.importitem(i).name.c_str());
+            logmsg("dll:import %d: %08x:=%08x   ord %4d %s %s\n", i, _pe.importitem(i).virtualaddress, *p, _pe.importitem(i).ordinal, _pe.importitem(i).dllname.c_str(), _pe.importitem(i).name.c_str());
         }
     }
     void *getprocbyname(const char *procname) const
@@ -710,7 +712,7 @@ public:
 
     DLLENTRYPOINT getentrypoint() const
     {
-        printf("getep: eva=%08lx base=%08lx data=%08lx\n", _pe.entryva(), _base_va, &_data[_pe.entryva()-_base_va]);
+        logmsg("getep: eva=%08lx base=%08lx data=%08lx\n", _pe.entryva(), _base_va, &_data[_pe.entryva()-_base_va]);
         return reinterpret_cast<DLLENTRYPOINT>(TranslateAddress(&_data[_pe.entryva()-_base_va]));
     }
 private:
@@ -742,7 +744,7 @@ std::string find_dll(const std::string& name)
     for (size_t i=searchpath.find(sepchar), j=0 ; j!=searchpath.npos ; j=i, i=searchpath.find(sepchar, i+1))
     {
         std::string path=searchpath.substr(j==0?0:j+1, (i==searchpath.npos || j==0)? i : i-j-1);
-        printf("dll:searching %s\n", path.c_str());
+        logmsg("dll:searching %s\n", path.c_str());
         if (fileexists(path+"/"+name))
             return path+"/"+name;
     }
@@ -755,12 +757,12 @@ HMODULE MyLoadLibrary(const char*dllname)
 {
     try {
         std::string dllfilename= find_dll(dllname);
-        printf("dll:loading %s\n", dllfilename.c_str());
+        logmsg("dll:loading %s\n", dllfilename.c_str());
         DllModule *dll= new DllModule(dllfilename, true);
 
-        DLLENTRYPOINT ep= dll->getentrypoint();
-        printf("loadlib: entrypoint=%08lx\n", ep);
-        ep(reinterpret_cast<HMODULE>(dll), 0, 0);
+//      DLLENTRYPOINT ep= dll->getentrypoint();
+//      logmsg("loadlib: entrypoint=%08lx\n", ep);
+//      ep(reinterpret_cast<HMODULE>(dll), 0, 0);
 
         return reinterpret_cast<HMODULE>(dll);
     }
@@ -777,7 +779,7 @@ HMODULE MyLoadKernelLibrary(const char*dllname)
 {
     try {
         std::string dllfilename= find_dll(dllname);
-        printf("dll:loading %s\n", dllfilename.c_str());
+        logmsg("dll:loading %s\n", dllfilename.c_str());
         DllModule *dll= new DllModule(dllfilename, false);
 
         DWORD physaddr=0;
@@ -787,14 +789,14 @@ HMODULE MyLoadKernelLibrary(const char*dllname)
             delete dll;
             return NULL;
         }
-        printf("klib: relocating to %08lx / phys %08lx\n", vptr, physaddr);
+        logmsg("klib: relocating to %08lx / phys %08lx\n", vptr, physaddr);
         dll->relocate(PhysToVirt(physaddr));
 //        dll->import();
 
         memcpy(vptr, dll->data(), dll->size());
 
         DLLENTRYPOINT ep= dll->getentrypoint();
-        printf("klib: entrypoint=%08lx\n", ep);
+        logmsg("klib: entrypoint=%08lx\n", ep);
         // todo: 3rd param should be kernellibiocontrol
         ep(reinterpret_cast<HMODULE>(dll), 0, 0);
 
