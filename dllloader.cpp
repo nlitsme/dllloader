@@ -1,3 +1,5 @@
+// todo: research how to use 32bit windows dll's from 64bit macosx
+
 // tool which exports 3 functions:
 //   LoadLibrary
 //   GetProcAddress
@@ -39,6 +41,8 @@ typedef uint32_t off_t;
 #endif
 
 #define logmsg while(0)
+
+
 class posixerror {
 public:
     posixerror(const std::string& fn, const std::string& name)
