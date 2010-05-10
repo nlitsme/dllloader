@@ -15,7 +15,7 @@ HMODULE MyLoadLibrary(const char*dllname);
 HMODULE MyLoadKernelLibrary(const char*dllname);
 #endif
 FARPROC MyGetProcAddress(HMODULE hModule, const char*procname);
-BOOL MyFreeLibrary(HMODULE hModule);
+bool MyFreeLibrary(HMODULE hModule);
 
 #define ERROR_INVALID_HANDLE             6L
 #define ERROR_GEN_FAILURE                31L

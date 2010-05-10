@@ -40,7 +40,7 @@ typedef uint32_t off_t;
 #define __stdcall __attribute__((stdcall))
 #endif
 
-#define logmsg while(0)
+#define logmsg(...)
 
 
 class posixerror {
@@ -51,7 +51,7 @@ public:
     }
     ~posixerror()
     {
-        printf("ERROR: %d in %s(%s)\n", _err, _fn.c_str(), _name.c_str());
+        fprintf(stderr,"ERROR: %d in %s(%s)\n", _err, _fn.c_str(), _name.c_str());
     }
 private:
     // note: on windows this cannot be called '_errno'
@@ -67,14 +67,14 @@ public:
     }
     ~loadererror()
     {
-        printf("ERROR: %s\n", _msg.c_str());
+        fprintf(stderr,"ERROR: %s\n", _msg.c_str());
     }
 private:
     std::string _msg;
 };
 class unimplemented {
 public:
-    ~unimplemented() { printf("ERROR: unimplemented\n"); }
+    ~unimplemented() { fprintf(stderr,"ERROR: unimplemented\n"); }
 };
 unsigned g_lasterror;
 
@@ -187,14 +187,14 @@ public:
     void readexact(void *p, size_t n)
     {
         int m=fread(p, n, 1, _f);
-        //printf("readx %08lx: %lu bytes in %p: %d\n", ftell(_f), n, p, m);
+        //fprintf(stderr,"readx %08lx: %lu bytes in %p: %d\n", ftell(_f), n, p, m);
         if (1!=m)
             throw posixerror("fread", _name);
     }
     int readmax(void *p, size_t nmax)
     {
         int m=fread(p, 1, nmax, _f);
-        //printf("readm %08lx: %lu bytes in %p: %d\n", ftell(_f), nmax, p, m);
+        //fprintf(stderr,"readm %08lx: %lu bytes in %p: %d\n", ftell(_f), nmax, p, m);
         if (m<0)
             throw posixerror("fread", _name);
         return m;
@@ -367,7 +367,7 @@ private:
             if (_sections[i].virtualaddress<=rva && rva<_sections[i].virtualaddress+_sections[i].virtualsize)
                 return rva-_sections[i].virtualaddress+_sections[i].fileoffset;
         }
-        printf("ERROR:invalid offset 0x%x requested\n", rva);
+        fprintf(stderr,"ERROR:invalid offset 0x%x requested\n", rva);
         throw loadererror("invalid offset");
     }
 
@@ -442,9 +442,9 @@ private:
             _f.seek(rva2fileofs(exphdr.rva_ordinal));
             _f.readexact(&eotlist[0], sizeof(uint16_t)*eotlist.size());
         }
-        //printf("read eot from %08lx: %d entries\n", exphdr.rva_ordinal, eotlist.size());
+        //fprintf(stderr,"read eot from %08lx: %d entries\n", exphdr.rva_ordinal, eotlist.size());
 
-        //printf("dllname=%s\n", readstring(exphdr.rva_dllname).c_str());
+        //fprintf(stderr,"dllname=%s\n", readstring(exphdr.rva_dllname).c_str());
 
         _exports.resize(eatlist.size());
         for (unsigned i=0 ; i<eatlist.size() ; i++)
@@ -543,7 +543,7 @@ typedef std::map<std::string,void*> name2ptrmap;
 typedef std::map<uint32_t,void*> ord2ptrmap;
 typedef std::vector<uint8_t> ByteVector;
 
-typedef BOOL (*DLLENTRYPOINT)(HANDLE HMODULE, DWORD reason, LPVOID reserved);
+typedef bool (*DLLENTRYPOINT)(HANDLE HMODULE, DWORD reason, LPVOID reserved);
 
 class DllModule {
 private:
@@ -601,7 +601,7 @@ public:
         logmsg("dll:%d relocs\n", _pe.reloccount());
         for (unsigned i=0 ; i<_pe.reloccount() ; i++)
         {
-           // printf("reloc %d: %08lx %d\n", i, _pe.relocitem(i).virtualaddress, _pe.relocitem(i).type);
+           // fprintf(stderr,"reloc %d: %08lx %d\n", i, _pe.relocitem(i).virtualaddress, _pe.relocitem(i).type);
         }
     }
 
@@ -627,7 +627,7 @@ public:
         // relocate
         for (unsigned i=0 ; i<_pe.reloccount() ; i++)
         {
-            //printf("relocating %08lx: %08x\n", _pe.relocitem(i).virtualaddress, *(uint32_t*)&_data[_pe.relocitem(i).virtualaddress-_base_va]);
+            //fprintf(stderr,"relocating %08lx: %08x\n", _pe.relocitem(i).virtualaddress, *(uint32_t*)&_data[_pe.relocitem(i).virtualaddress-_base_va]);
             uint8_t *p= &_data[_pe.relocitem(i).virtualaddress-_base_va];
             switch(_pe.relocitem(i).type)
             {
@@ -637,7 +637,7 @@ public:
                 case IMAGE_REL_BASED_HIGHLOW:    *(uint32_t*)p += delta;        logmsg("-"); break;
                 case IMAGE_REL_BASED_HIGHADJ:      throw unimplemented(); // ?? ... have to re-read description
                 default:
-                   printf("ERROR: unhandled fixup type %d\n", _pe.relocitem(i).type);
+                   fprintf(stderr,"ERROR: unhandled fixup type %d\n", _pe.relocitem(i).type);
                    throw unimplemented();
             }
         }
@@ -646,7 +646,7 @@ public:
 
     }
 #ifndef _WIN32_WCE
-    static void undefined() { printf("unimported\n"); }
+    static void undefined() { fprintf(stderr,"unimported\n"); }
     static void *__stdcall LocalAlloc(int flag, int size) { return malloc(size); }
     static void *__stdcall LocalFree(void *p) { free(p); return NULL; }
     static void __stdcall SetLastError(uint32_t e) { }
@@ -829,7 +829,7 @@ FARPROC MyGetProcAddress(HMODULE hModule, const char*procname)
     return (FARPROC)dll->getprocbyname(procname);
 }
 
-BOOL MyFreeLibrary(HMODULE hModule)
+bool MyFreeLibrary(HMODULE hModule)
 {
     DllModule *dll= reinterpret_cast<DllModule*>(hModule);
     if (dll==NULL) {

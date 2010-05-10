@@ -1,8 +1,9 @@
 #ifndef _WINTYPES_H_
 #define _WINTYPES_H_
 
+#include <stdint.h>
 // some windows types:
-typedef int BOOL;
+//typedef int BOOL;
 typedef void* HMODULE;
 typedef void* HANDLE;
 typedef uint32_t DWORD;
