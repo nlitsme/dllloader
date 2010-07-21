@@ -645,13 +645,22 @@ public:
         logmsg(">\n");
 
     }
+
+#ifndef _WIN32
+#define ALIGN_STACK  __attribute__((force_align_arg_pointer))
+#else
+#define ALIGN_STACK
+#endif
 #ifndef _WIN32_WCE
-    static void undefined() { fprintf(stderr,"unimported\n"); }
-    static void *__stdcall LocalAlloc(int flag, int size) { return malloc(size); }
-    static void *__stdcall LocalFree(void *p) { free(p); return NULL; }
-    static void __stdcall SetLastError(uint32_t e) { }
-    static bool __stdcall DisableThreadLibraryCalls(void *hmod) { return true; }
-    static void dummy() { }
+    static void undefined() ALIGN_STACK { fprintf(stderr,"unimported\n"); }
+    static void *__stdcall LocalAlloc(int flag, int size) ALIGN_STACK { return malloc(size); }
+    static void *__stdcall LocalFree(void *p) ALIGN_STACK { free(p); return NULL; }
+    static void __stdcall SetLastError(uint32_t e) ALIGN_STACK { }
+    static bool __stdcall DisableThreadLibraryCalls(void *hmod) ALIGN_STACK { return true; }
+    static void dummy() ALIGN_STACK { }
+
+    static void *alignedmalloc(int size) ALIGN_STACK { return malloc(size); }
+    static void alignedfree(void *p) ALIGN_STACK { free(p); }
 #endif
     void import()
     {
@@ -674,8 +683,8 @@ public:
             else if (_pe.importitem(i).name=="LocalFree") *p=(uint32_t)LocalFree;
             else if (_pe.importitem(i).name=="DisableThreadLibraryCalls") *p=(uint32_t)DisableThreadLibraryCalls;
             else if (_pe.importitem(i).name=="SetLastError") *p=(uint32_t)SetLastError;
-            else if (_pe.importitem(i).name=="malloc") *p=(uint32_t)malloc;
-            else if (_pe.importitem(i).name=="free") *p=(uint32_t)free;
+            else if (_pe.importitem(i).name=="malloc") *p=(uint32_t)alignedmalloc;
+            else if (_pe.importitem(i).name=="free") *p=(uint32_t)alignedfree;
             else if (_pe.importitem(i).name=="_adjust_fdiv") *p=(uint32_t)undefined;
             else *p=(uint32_t)dummy;
 #else
