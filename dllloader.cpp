@@ -543,7 +543,8 @@ typedef std::map<std::string,void*> name2ptrmap;
 typedef std::map<uint32_t,void*> ord2ptrmap;
 typedef std::vector<uint8_t> ByteVector;
 
-typedef bool (*DLLENTRYPOINT)(HANDLE HMODULE, DWORD reason, LPVOID reserved);
+
+typedef bool (*DLLENTRYPOINT)(HANDLE HMODULE, DWORD reason, void* reserved);
 
 class DllModule {
 private:

@@ -1,11 +1,15 @@
 #ifndef __DLLLOADER__H__
 #define __DLLLOADER__H__
 
+#include <util/wintypes.h>
 #ifndef _WIN32
-#include "wintypes.h"
-#else
-#include <windows.h>
+typedef uint32_t HANDLE;
+typedef uint32_t HMODULE;
+typedef uint32_t DWORD;
+typedef int (*FARPROC)();
 #endif
+
+
 
 #ifdef __cplusplus
 extern "C" {

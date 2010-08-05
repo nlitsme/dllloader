@@ -5,7 +5,7 @@
 // some windows types:
 //typedef int BOOL;
 typedef void* HMODULE;
-typedef void* HANDLE;
+//typedef void* HANDLE;
 typedef uint32_t DWORD;
 typedef uint32_t* PDWORD;
 typedef uint8_t BYTE;
