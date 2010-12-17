@@ -11,6 +11,7 @@
 #ifndef _WIN32_WCE
 #include <errno.h>
 #include <sys/stat.h>
+#include <stdlib.h>
 #else
 #define errno GetLastError()
 #endif
