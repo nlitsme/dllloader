@@ -9,6 +9,7 @@ typedef uint32_t DWORD;
 typedef int (*FARPROC)();
 #endif
 
+#define NULLMODULE  HMODULE(0)
 
 
 #ifdef __cplusplus
