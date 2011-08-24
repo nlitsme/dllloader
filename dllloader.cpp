@@ -43,6 +43,9 @@ typedef uint32_t off_t;
 
 #define logmsg(...)
 
+#ifdef __MACH__
+#include <sys/mman.h>
+#endif
 
 class posixerror {
 public:
@@ -605,6 +608,24 @@ public:
         {
            // fprintf(stderr,"reloc %d: %08lx %d\n", i, _pe.relocitem(i).virtualaddress, _pe.relocitem(i).type);
         }
+#ifdef __MACH__ 
+#if MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_7
+
+#define PAGE_MASK 0xFFF
+        // make executable
+        uint32_t dataaddr= (uint32_t)&_data[0];
+        uint32_t pageofs0= dataaddr&PAGE_MASK;
+        uint32_t pageofs1= (dataaddr+_data.size()+pageofs0)&PAGE_MASK;
+        if (pageofs1)
+            pageofs1= 0x1000-pageofs1;
+        int rc= mprotect(&_data[0]-pageofs0, _data.size()+pageofs0+pageofs1, PROT_EXEC|PROT_READ|PROT_WRITE);
+        if (rc) {
+            printf("mprotect(%d)  %p:%08x -> %p:%08x\n", errno,
+                    &_data[0], _data.size(),
+                    &_data[0]-pageofs0, _data.size()+pageofs0+pageofs1);
+        }
+#endif
+#endif
     }
 
     // fixup types
