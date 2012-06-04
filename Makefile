@@ -30,6 +30,7 @@ all: tstcompr tstload
 
 clean:
 	$(RM) -f $(wildcard *.pdb *.exe *.obj *.o *.ilk a.out) tstcompr tstload
+	$(RM) -r $(wildcard *.dSYM)
 
 tstcompr: dllloader.cpp tstcompr.cpp
 ifeq ($(VSTUDNET),)
