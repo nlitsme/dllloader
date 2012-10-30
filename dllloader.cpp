@@ -621,8 +621,8 @@ public:
         int rc= mprotect(&_data[0]-pageofs0, _data.size()+pageofs0+pageofs1, PROT_EXEC|PROT_READ|PROT_WRITE);
         if (rc) {
             printf("mprotect(%d)  %p:%08x -> %p:%08x\n", errno,
-                    &_data[0], _data.size(),
-                    &_data[0]-pageofs0, _data.size()+pageofs0+pageofs1);
+                    &_data[0], (int)_data.size(),
+                    &_data[0]-pageofs0, (int)(_data.size()+pageofs0+pageofs1));
         }
 #endif
 #endif
