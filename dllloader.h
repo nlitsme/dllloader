@@ -7,6 +7,7 @@ typedef uint32_t HANDLE;
 typedef uint32_t HMODULE;
 typedef uint32_t DWORD;
 typedef int (*FARPROC)();
+typedef uint8_t   BYTE;
 typedef uint8_t*LPBYTE;
 typedef uint16_t WORD;
 typedef void* LPVOID;
