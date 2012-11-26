@@ -14,7 +14,7 @@ endif
 # gcc on osx:
 # -mstackrealign  is needed to fix the '__dyld_misaligned_stack_error' issue.
 
-msccdefs+=/D _CRT_SECURE_NO_WARNINGS /D _SECURE_SCL=0 /D _HAS_ITERATOR_DEBUGGING=0
+msccdefs+=/D _CRT_SECURE_NO_WARNINGS /D _SECURE_SCL=0 /D _HAS_ITERATOR_DEBUGGING=0 /D NOMINMAX
 ifeq ($(HOSTTYPE),amd64)
 CFLAGS=-m32 -isystem /usr/include/32bit
 else
@@ -24,7 +24,8 @@ else
 endif
 endif
 
-CFLAGS+=-I../common
+CFLAGS+=-I../common -I /opt/local/include
+SDKINCS=/I "$(VStudNet)\vc\include" /I "$(VStudNet)\vc\platformsdk\include"
 
 all: tstcompr tstload
 
@@ -33,19 +34,18 @@ clean:
 	$(RM) -r $(wildcard *.dSYM)
 
 tstcompr: dllloader.cpp tstcompr.cpp
-ifeq ($(VSTUDNET),)
-	g++ $(CFLAGS) -Wall -g dllloader.cpp tstcompr.cpp -o $@
+ifeq ($(VStudNet),)
+	g++ $(CFLAGS) -Wall -g $^ -o $@
 else
-	cl /EHsc $(msccdefs) /Zi tstcompr.cpp dllloader.cpp /I "$(VSTUDNET)\vc\include" /I ../include/msvc  /link /libpath:"$(VSTUDNET)\vc\lib"
-	cl /D_USE_WINDOWS /EHsc $(msccdefs) /Zi tstcompr.cpp dllloader.cpp /I "$(VSTUDNET)\vc\include" /I "$(VSTUDNET)\vc\platformsdk\include" /I ../include/msvc /Fe"tstloader2.exe" /link /libpath:"$(VSTUDNET)\vc\lib" /libpath:"$(VSTUDNET)\vc\platformsdk\lib"
+	cl /I ../common /EHsc $(msccdefs) /Zi $^ $(SDKINCS) /I ../include/msvc  /link /libpath:"$(VStudNet)\vc\lib"
+	cl /I ../common /D_USE_WINDOWS /EHsc $(msccdefs) /Zi $^ $(SDKINCS) /I ../include/msvc /Fe"tstloader2.exe" /link /libpath:"$(VStudNet)\vc\lib" /libpath:"$(VStudNet)\vc\platformsdk\lib"
 endif
 
-
 tstload: dllloader.cpp tstload.cpp
-ifeq ($(VSTUDNET),)
-	g++ $(CFLAGS) -Wall -g dllloader.cpp tstload.cpp -o $@
+ifeq ($(VStudNet),)
+	g++ $(CFLAGS) -Wall -g $^ -o $@
 else
-	cl /EHsc $(msccdefs) /Zi tstload.cpp dllloader.cpp /I "$(VSTUDNET)\vc\include" /I ../include/msvc  /link /libpath:"$(VSTUDNET)\vc\lib"
-	cl /D_USE_WINDOWS /EHsc $(msccdefs) /Zi tstload.cpp dllloader.cpp /I "$(VSTUDNET)\vc\include" /I "$(VSTUDNET)\vc\platformsdk\include" /I ../include/msvc /Fe"tstloader2.exe" /link /libpath:"$(VSTUDNET)\vc\lib" /libpath:"$(VSTUDNET)\vc\platformsdk\lib"
+	cl /I ../common /EHsc $(msccdefs) /Zi $^ $(SDKINCS) /I ../include/msvc  /link /libpath:"$(VStudNet)\vc\lib"
+	cl /I ../common /D_USE_WINDOWS /EHsc $(msccdefs) /Zi $^ $(SDKINCS) /I ../include/msvc /Fe"tstloader2.exe" /link /libpath:"$(VStudNet)\vc\lib" /libpath:"$(VStudNet)\vc\platformsdk\lib"
 endif
 
