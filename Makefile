@@ -7,7 +7,7 @@ endif
 ifneq ($(wildcard /sbin/modprobe),)
 OSTYPE=linux
 endif
-ifneq ($(wildcard $(SystemRoot)/explorer.exe),)
+ifneq ($(wildcard $(SystemRoot)/explorer.exe $(SYSTEMROOT)/explorer.exe),)
 OSTYPE=windows
 endif
 
